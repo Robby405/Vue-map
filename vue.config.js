@@ -21,4 +21,5 @@ module.exports = {
           return options;
       });
   },
+  lintOnSave:false //关闭eslint检查
 };

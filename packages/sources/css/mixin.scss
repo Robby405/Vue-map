@@ -1,0 +1,3 @@
+@mixin bgImage($imgName) {
+  background-image: reqiure("../../sources/img/" + $imgName + ".png");
+}

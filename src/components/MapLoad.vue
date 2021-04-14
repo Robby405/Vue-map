@@ -2,9 +2,12 @@
   <div class="map-container">
     <div id="map" class="map"></div>
     <aside class="buttons-aside">
-      <tool-button type="fullExtend" :map="map" name="全屏" :proj="proj" />
+      <tool-button type="fullExtent" :map="map" name="复原" :proj="proj" />
+      <tool-button type="fullScreen" :map="map" name="全屏" :proj="proj" />
       <tool-button type="measureLength" :map="map" name="测距" :proj="proj" />
-       <tool-button type="measureArea" :map="map" name="测面" :proj="proj" />
+      <tool-button type="measureArea" :map="map" name="测面" :proj="proj" />
+      <tool-button type="deleteLayer" :map="map" name="清空" :proj="proj" />
+
     </aside>
   </div>
 </template>

@@ -11,6 +11,13 @@ import { generateGuid } from './common';
 
 let measureDraw = false;
 
+/**
+ * 量测
+ * @param {*地图对象} map 
+ * @param {*量测对象，线/面} type 
+ * @param {*目前坐标系} proj 
+ * @returns 
+ */
 function measureLengthOrArea(map, type, proj) {
     if (measureDraw) {
         map.removeInteraction();
@@ -39,31 +46,31 @@ function measureLengthOrArea(map, type, proj) {
         }),
     });
     /**
-    * Currently drawn feature.
+    * Currently drawn feature. 当前绘制的要素
     * @type {import("../src/ol/Feature.js").default}
     */
     let sketch;
 
     /**
-     * The help tooltip element.
+     * The help tooltip element. 绘制时的提示框
      * @type {HTMLElement}
      */
     let helpTooltipElement;
 
     /**
-     * Overlay to show the help messages.
+     * Overlay to show the help messages. 提示框层
      * @type {Overlay}
      */
     let helpTooltip;
 
     /**
-     * The measure tooltip element.
+     * The measure tooltip element. 绘制后计算得出的长度/面积提示框
      * @type {HTMLElement}
      */
     let measureTooltipElement;
 
     /**
-     * Overlay to show the measurement.
+     * Overlay to show the measurement. 提示框层
      * @type {Overlay}
      */
     let measureTooltip;
@@ -105,8 +112,6 @@ function measureLengthOrArea(map, type, proj) {
     });
 
     let draw;
-
-
     function addInteraction() {
         draw = new Draw({
             source: measureVectorSource,
@@ -131,11 +136,11 @@ function measureLengthOrArea(map, type, proj) {
                 }),
             }),
         });
-        map.addInteraction(draw);
-
+        // map.addInteraction(draw);
         const guid = generateGuid();
+        addInteractionToMap(map, draw);
         createMeasureTooltip(guid);
-        createHelpTooltip(guid);
+        createHelpTooltip();
 
         let listener;
         draw.on('drawstart', function (evt) {
@@ -160,28 +165,27 @@ function measureLengthOrArea(map, type, proj) {
                 measureTooltipElement.innerHTML = output + innerHTML;
                 measureTooltip.setPosition(tooltipCoord);
                 document.getElementById(guid).addEventListener('click', function () {
-                    console.log(guid);
+                    removeFeatureFromVectorLayer(map, guid, measureVectorLayer);
                     removeMeasureInfo(map, guid);
                 })
             })
-        })
+        }, this)
         draw.on('drawend', function () {
-            console.log('end', guid);
             document.getElementById(guid).style.display = 'block';
             measureTooltipElement.className = 'ol-tooltip ol-tooltip-static';
             measureTooltip.setOffset([0, -7]);
             sketch = null;
             measureTooltipElement = null;
-            createMeasureTooltip(guid);
+            createMeasureTooltip();
             unByKey(listener);
             unByKey(pointermoveListener);
-            helpTooltipElement.parentNode.removeChild(helpTooltipElement);
-            map.removeInteraction(draw);
-            // removeInteractionFromMap(map, draw);
+            // helpTooltipElement && helpTooltipElement.parentNode.removeChild(helpTooltipElement);
+            console.log(map, draw);
+            removeInteractionFromMap(map, draw);
         })
     }
 
-    function createHelpTooltip(guid) {
+    function createHelpTooltip() {
         if (helpTooltipElement) {
             helpTooltipElement.parentNode.removeChild(helpTooltipElement);
         }
@@ -190,11 +194,9 @@ function measureLengthOrArea(map, type, proj) {
         helpTooltip = new Overlay({
             id: 'meaOverlayHelp',
             element: helpTooltipElement,
-            offset: [15, 0],
+            offset: [25, 0],
             positioning: 'center-left'
         });
-        console.log('helpTooltip', guid);
-        helpTooltip.set('guid', guid);
         map.addOverlay(helpTooltip);
     }
 
@@ -207,32 +209,11 @@ function measureLengthOrArea(map, type, proj) {
         measureTooltip = new Overlay({
             id: 'meaOverlayTool',
             element: measureTooltipElement,
-            offset: [0, -15],
+            offset: [0, -25],
             positioning: 'bottom-center'
         });
         measureTooltip.set('guid', guid);
         map.addOverlay(measureTooltip);
-    }
-
-    function removeMeasureInfo(map, guid) {
-        let temOverLayer = [];
-        const overLayers = map.getOverlays();
-        console.log(overLayers, guid);
-        measureVectorLayer.getSource().removeFeature(measureVectorLayer.getSource().getFeatureById(guid));
-        for (var j = 0; j < overLayers.getLength(); j++) {
-            let tempArray = overLayers.getArray();
-            if (tempArray[j].id) {
-                if (tempArray[j].id.indexOf('meaOverlayTool') === 0 || tempArray[j].id.indexOf('meaOverlayHelp') > -1) {
-                    if (tempArray[j].getProperties().guid === guid) {
-                        temOverLayer.push(tempArray[j]);
-                    }
-                }
-            }
-            removeOverlayFromMap(map, temOverLayer);
-        }
-
-        // map.removeOverlay(measureTooltip);
-        // map.removeOverlay(helpTooltip);
     }
 
     addInteraction();
@@ -257,6 +238,53 @@ function formatArea(polygon, proj) {
         output = Math.round(area * 100) / 100 + ' m<sup>2</sup>';
     }
     return output;
+}
+function removeFeatureFromVectorLayer(map, guid, layer) {
+    if (!guid) return;
+    let source = layer.getSource();
+    let feature = layer.getSource().getFeatureById(guid);
+    if (source && feature) {
+        source.removeFeature(feature);
+    }
+}
+function removeMeasureInfo(map, guid) {
+    let temOverLayer = [];
+    const overLayers = map.getOverlays();
+    for (var j = 0; j < overLayers.getLength(); j++) {
+        let tempArray = overLayers.getArray();
+        if (tempArray[j].id) {
+            if (tempArray[j].id.indexOf('meaOverlayTool') === 0) {
+                if (tempArray[j].getProperties().guid === guid) {
+                    temOverLayer.push(tempArray[j]);
+                }
+            }
+        }
+        removeOverlayFromMap(map, temOverLayer);
+    }
+}
+/**
+   * 添加地图交互
+   * @param interaction 地图交互
+   */
+function addInteractionToMap(map, interaction) {
+    if (!interaction) {
+        return;
+    }
+    if (interaction instanceof Array) {
+        interaction.forEach(item => {
+            try {
+                map.addInteraction(item);
+            } catch (e) {
+                console.error(e);
+            }
+        });
+    } else {
+        try {
+            map.addInteraction(interaction);
+        } catch (e) {
+            console.error(e);
+        }
+    }
 }
 /**
  * 移除地图交互
@@ -308,6 +336,7 @@ function removeOverlayFromMap(map, overlays) {
     }
 }
 
+
 /**
 * 设置全图
 * @param coord
@@ -358,5 +387,8 @@ export {
     setCenter,
     updateSize,
     measureLengthOrArea,
-    removeInteractionFromMap
+    addInteractionToMap,
+    removeInteractionFromMap,
+    // deleteLayerFromMeasure,
+    removeOverlayFromMap
 }

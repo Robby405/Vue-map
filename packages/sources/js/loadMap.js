@@ -2,6 +2,7 @@ import 'ol/ol.css';
 import Map from 'ol/Map';
 import { Group } from 'ol/layer';
 import { defaults as defaultControls } from 'ol/control'
+import { defaults as defaultInteractions } from 'ol/interaction';
 import TileLayer from 'ol/layer/Tile';
 import View from 'ol/View';
 import XYZ from 'ol/source/XYZ';
@@ -38,8 +39,9 @@ class MapClass {
                     zoom: false,
                     rotate: false
                 }).extend([
-                    // new FullScreen()
+                    
                 ]),
+            interactions: defaultInteractions().extend([]),
             target: container,
             layers: [
                 this.tiandituLayersGroup
@@ -48,10 +50,7 @@ class MapClass {
                 ...options.view
             })
         });
-
     }
-
-   
 }
 
 export {
